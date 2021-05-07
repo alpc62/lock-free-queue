@@ -1,6 +1,6 @@
 # lock-free-queue
-基于``linux kernel kfifo``基础实现的无锁队列  
-一个简易、轻便、高性能、无任何依赖的``boost/lockfree/spsc_queue.hpp``的替换方案
+一个简易、轻便、高性能、无任何依赖，基于``linux kernel kfifo``改编实现的高性能无锁队列  
+linux平台``boost/lockfree/spsc_queue.hpp``的替换方案
 
 # 使用方法
 - 无需安装，仅kfifo.h和queue62.hpp两个头文件
