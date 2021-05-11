@@ -3,13 +3,26 @@
 linux平台``boost/lockfree/spsc_queue.hpp``的替换方案
 
 # 使用方法
-- 无需安装，仅kfifo.h和queue62.hpp两个头文件
-- 使用时务必自己确保初始化的size是2的N次方，暂时没有做额外的判断、提示或容错
-- 如果大小不符合2的N次方的要求，任何行为都无法预计
+- 无需安装，仅需要1个头文件
+  - C++使用``include/queue62.hpp``(Apache License2.0)
+  - C使用``optional/kfifo.h``(GPLv2)
+- 使用时请确保初始化的size是2的N次方，附函数按需使用
+```
+static inline unsigned int _round_up_next_power2(unsigned int v)
+{
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
+}
+```
 
 ## C++
-需要C++11以上，``-std=c++11``即可  
-由于模板中使用的std::is_pod特性在c++20被废弃、固暂不支持c++20，待修复[TODO]
+需要C++11以上，``-std=c++11``即可
 ```
 #include "queue62.hpp"
 #include <string>
@@ -41,11 +54,11 @@ int main()
 
 # 实现概述
 ## 单生产单消费
-- 以``linux kernel first-input-first-output queue``的源码``include/linux/kfifo.h``和``kernel/kfifo.c``改编
+- 由``linux kernel first-input-first-output queue``的源码``include/linux/kfifo.h``和``kernel/kfifo.c``改编
 - 保持原作的无锁特性
-- POD支持变长
-- 扩充非POD类型的支持、比如``std::string``等
-- 非POD仅支持push(1)，pop(N)，且默认使用``std::move``进行pop操作以尽可能减少不必要的内存拷贝
+- 扩充non-trivial类型的支持、比如``std::string``等
+- 支持批量push/pop，trivial类型使用``memcpy``, non-trivial类型默认使用``std::move``
+- 效仿boost接口，接口名和参数列表与boost提供的spsc_queue类似
 
 ## 多生产多消费
 - 非无锁，目前版本使用自旋锁

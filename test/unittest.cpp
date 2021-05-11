@@ -27,8 +27,8 @@ void push_int(Q& que, std::atomic<int>& pusher)
     int i = 0;
     while (i < 2048)
     {
-        bool succ = que.push(i);
-        if (!succ)
+        int sz = que.push(&i, 1);
+        if (sz == 0)
         {
             // full
             std::this_thread::yield();
@@ -45,8 +45,8 @@ void pop_int(Q& que, std::atomic<int>& pusher, std::map<int, int>& counter)
     int res;
     while (que.read_available() > 0 || pusher > 0)
     {
-        int sz = que.pop(&res, 1);
-        if (sz == 0)
+        bool succ = que.pop(res);
+        if (!succ)
         {
             // empty
             std::this_thread::yield();

@@ -31,8 +31,8 @@ extern "C" {
 #define _KFIFO_H_62
 
 #include <pthread.h>
-#include <memory.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct kfifo {
     pthread_spinlock_t lock; /* protects concurrent modifications */
@@ -237,13 +237,6 @@ static inline unsigned int __kfifo_put(struct kfifo *fifo,
 
     len = _min(len, fifo->size - fifo->in + fifo->out);
 
-    /*
-     * Ensure that we sample the fifo->out index -before- we
-     * start putting bytes into the kfifo.
-     */
-
-    asm volatile("mfence" ::: "memory");
-
     /* first put the data starting from fifo->in to buffer end */
     l = _min(len, fifo->size - (fifo->in & (fifo->size - 1)));
     memcpy((char *)fifo->buffer + (fifo->in & (fifo->size - 1)), buffer, l);
@@ -282,13 +275,6 @@ static inline unsigned int __kfifo_get(struct kfifo *fifo,
 
     len = _min(len, fifo->in - fifo->out);
 
-    /*
-     * Ensure that we sample the fifo->in index -before- we
-     * start removing bytes from the kfifo.
-     */
-
-    asm volatile("lfence" ::: "memory");
-
     /* first get the data from fifo->out until the end of the buffer */
     l = _min(len, fifo->size - (fifo->out & (fifo->size - 1)));
     memcpy(buffer, (char *)fifo->buffer + (fifo->out & (fifo->size - 1)), l);
@@ -301,7 +287,7 @@ static inline unsigned int __kfifo_get(struct kfifo *fifo,
      * we update the fifo->out index.
      */
 
-    asm volatile("mfence" ::: "memory");
+    asm volatile("sfence" ::: "memory");
 
     fifo->out += len;
 
