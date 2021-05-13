@@ -1,5 +1,5 @@
-# lock-free-queue
-一个简易、轻便、高性能、无任何依赖，基于``linux kernel kfifo``改编实现的高性能无锁队列  
+# lock-free-circular-queue
+一个简易、轻便、高性能、无任何依赖的高性能无锁环形队列  
 linux平台``boost/lockfree/spsc_queue.hpp``的替换方案
 
 # 使用方法
@@ -29,17 +29,18 @@ static inline unsigned int _round_up_next_power2(unsigned int v)
 
 int main()
 {
-    spsc_queue<std::string, 1024> que;
+    spsc_queue<std::string, 1024> que; // single-producer/single-consumer
+    //mpmc_queue<std::string, 1024> que; // multi-producers/multi-consumers
     que.push("abc");
     que.push("kfifo");
     que.push("queue");
 
     while (que.read_available() > 0)
     {
-	    std::string res;
-	    int sz = que.pop(&res, 1);
-	    cout << res << endl;
-	}
+        std::string res;
+        int sz = que.pop(&res, 1);
+        cout << res << endl;
+	  }
 }
 ```
 接口设计模仿``boost``的无锁队列``boost/lockfree/spsc_queue.hpp``  
@@ -54,14 +55,16 @@ int main()
 
 # 实现概述
 ## 单生产单消费
-- 由``linux kernel first-input-first-output queue``的源码``include/linux/kfifo.h``和``kernel/kfifo.c``改编
-- 保持原作的无锁特性
-- 扩充non-trivial类型的支持、比如``std::string``等
+- wait-free, 用内存屏障实现
+- 支持non-trivial类型，比如``std::string``等
 - 支持批量push/pop，trivial类型使用``memcpy``, non-trivial类型默认使用``std::move``
-- 效仿boost接口，接口名和参数列表与boost提供的spsc_queue类似
+- 效仿boost spsc_queue接口，接口名和参数列表与boost提供的spsc_queue类似
 
 ## 多生产多消费
-- 非无锁，目前版本使用自旋锁
-- 支持非POD
-- 效仿``include/linux/kfifo.h``使用``pthread_spinlock_t``上锁
-- 后续考虑使用CAS进一步提高性能，以实现真正的无锁队列 -- [TODO]
+- lock-free, 用CAS实现
+- 支持non-trivial类型，比如``std::string``等
+- 存储指针类型时性能最佳，但用户需要自己管理每个元素的申请释放时机
+- 非指针类型会有频繁的``new``/``delete``、性能会有所下降，建议使用``-ljemalloc``提高性能
+- 不支持批量push/pop
+- 效仿std queue接口，接口名和参数列表与std提供的queue类似
+- 利用计数和位运算解决ABA问题
