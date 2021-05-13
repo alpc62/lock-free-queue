@@ -24,23 +24,27 @@ static inline unsigned int _round_up_next_power2(unsigned int v)
 ## C++
 需要C++11以上，``-std=c++11``即可
 ```
-#include "queue62.hpp"
+#include <iostream>
 #include <string>
+#include "queue62.hpp"
 
 int main()
 {
     spsc_queue<std::string, 1024> que; // single-producer/single-consumer
-    //mpmc_queue<std::string, 1024> que; // multi-producers/multi-consumers
+    mpmc_queue<std::string, 1024> _q2; // multi-producers/multi-consumers
+
     que.push("abc");
     que.push("kfifo");
     que.push("queue");
 
     while (que.read_available() > 0)
     {
-        std::string res;
-        int sz = que.pop(&res, 1);
-        cout << res << endl;
-	  }
+        std::string res[4];
+        int cnt = que.pop(res, 4);
+
+        for (int i = 0; i < cnt; i++)
+          std::cout << res[i] << std::endl;
+    }
 }
 ```
 接口设计模仿``boost``的无锁队列``boost/lockfree/spsc_queue.hpp``  
